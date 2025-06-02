@@ -8,7 +8,7 @@
  * License:           GPLv2 or later
  * Text Domain:       woo-repairshopr-product-sync
  * GitHub Plugin URI: https://github.com/dataforge/woo-repairshopr-product-sync
- * Primary Branch: main
+ * Branch: main
  */
 
 // Exit if accessed directly
