@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 // Create a submenu under WooCommerce for the RepairShopr sync feature
 add_action('admin_menu', function() {
-    add_submenu_page('woocommerce', 'DF - WooCommerce - RepairShopr Inventory Sync', 'DF - WooCommerce - RepairShopr Inventory Sync', 'manage_options', 'repairshopr-sync', 'repairshopr_sync_page_callback');
+    add_submenu_page('woocommerce', 'Woo RepairShopr Product Sync', 'Woo RepairShopr Product Sync', 'manage_options', 'repairshopr-sync', 'repairshopr_sync_page_callback');
 });
 
 // Enqueue necessary scripts for the sync page
@@ -184,7 +184,7 @@ function repairshopr_sync_page_callback() {
     if (empty(get_option(REPAIRSHOPR_SYNC_OPTION_KEY))) {
         ?>
         <div class="wrap">
-        <h1><?php echo esc_html__('DF - WooCommerce - RepairShopr Inventory Sync', 'repairshopr-sync'); ?></h1>
+        <h1><?php echo esc_html__('Woo RepairShopr Product Sync', 'repairshopr-sync'); ?></h1>
             <div class="notice notice-error">
                 <p><?php echo esc_html__('RepairShopr API key is not configured. Please set it in the settings tab.', 'repairshopr-sync'); ?></p>
             </div>
