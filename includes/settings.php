@@ -8,6 +8,32 @@ if (!defined('ABSPATH')) {
  * Display the settings form
  */
 function display_settings_form() {
+    // Handle "Check for Plugin Updates" button
+    $update_msg = '';
+    if (isset($_POST['repairshopr_check_update']) && check_admin_referer('repairshopr_settings_nonce', 'repairshopr_settings_nonce')) {
+        // Simulate the cron event for plugin update check
+        do_action('wp_update_plugins');
+        if (function_exists('wp_clean_plugins_cache')) {
+            wp_clean_plugins_cache(true);
+        }
+        // Remove the update_plugins transient to force a check
+        delete_site_transient('update_plugins');
+        // Call the update check directly as well
+        if (function_exists('wp_update_plugins')) {
+            wp_update_plugins();
+        }
+        // Get update info
+        $plugin_file = plugin_basename(dirname(__FILE__, 2) . '/woo-repairshopr-product-sync.php');
+        $update_plugins = get_site_transient('update_plugins');
+        if (isset($update_plugins->response) && isset($update_plugins->response[$plugin_file])) {
+            $new_version = $update_plugins->response[$plugin_file]->new_version;
+            $update_msg = '<div class="notice notice-success"><p>' . esc_html__('Update available: version ', 'repairshopr-sync') . esc_html($new_version) . '.</p></div>';
+        } else {
+            $update_msg = '<div class="notice notice-success"><p>' . esc_html__('No update available for this plugin.', 'repairshopr-sync') . '</p></div>';
+        }
+        echo $update_msg;
+    }
+
     // Handle form submission
     if (isset($_POST['repairshopr_api_key']) && isset($_POST['repairshopr_sync_auto_enabled']) && isset($_POST['repairshopr_sync_interval_minutes'])) {
         if (current_user_can('manage_options')) {
@@ -121,6 +147,12 @@ function display_settings_form() {
             <input type="submit" name="submit" id="submit" class="button button-primary" 
                    value="<?php echo esc_attr__('Save Settings', 'repairshopr-sync'); ?>" />
         </p>
+    </form>
+
+    <form method="post" action="" style="margin-top:2em;">
+        <?php wp_nonce_field('repairshopr_settings_nonce', 'repairshopr_settings_nonce'); ?>
+        <input type="hidden" name="repairshopr_check_update" value="1">
+        <?php submit_button(__('Check for Plugin Updates', 'repairshopr-sync'), 'secondary'); ?>
     </form>
     <script>
     // Enable/disable interval input based on checkbox

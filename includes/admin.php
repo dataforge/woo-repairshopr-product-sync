@@ -198,7 +198,7 @@ function repairshopr_sync_page_callback() {
     $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'sync';
     ?>
     <div class="wrap">
-        <h1><?php echo esc_html__('RepairShopr Sync', 'repairshopr-sync'); ?></h1>
+        <h1><?php echo esc_html__('RepairShopr Product Sync', 'repairshopr-sync'); ?></h1>
         
         <nav class="nav-tab-wrapper">
             <a href="?page=repairshopr-sync&tab=sync" class="nav-tab <?php echo $current_tab === 'sync' ? 'nav-tab-active' : ''; ?>">
