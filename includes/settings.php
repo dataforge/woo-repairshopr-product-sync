@@ -12,8 +12,32 @@ function display_settings_form() {
     if (isset($_POST['repairshopr_api_key']) && isset($_POST['repairshopr_sync_auto_enabled']) && isset($_POST['repairshopr_sync_interval_minutes'])) {
         if (current_user_can('manage_options')) {
             if (check_admin_referer('repairshopr_settings_nonce')) {
-                $api_key = sanitize_text_field($_POST['repairshopr_api_key']);
-                update_option(REPAIRSHOPR_SYNC_OPTION_KEY, $api_key);
+                $stored_api_key = '';
+                if (defined('REPAIRSHOPR_SYNC_SECRET') || defined('AUTH_KEY')) {
+                    $encrypted = get_option(REPAIRSHOPR_SYNC_OPTION_KEY);
+                    $secret = defined('REPAIRSHOPR_SYNC_SECRET') ? REPAIRSHOPR_SYNC_SECRET : (defined('AUTH_KEY') ? AUTH_KEY : '');
+                    if (!empty($encrypted) && !empty($secret)) {
+                        $stored_api_key = openssl_decrypt($encrypted, 'AES-256-CBC', $secret, 0, substr(hash('sha256', $secret), 0, 16));
+                    }
+                }
+                $submitted_api_key = sanitize_text_field($_POST['repairshopr_api_key']);
+                // If the submitted value is masked, do not update the stored key
+                if (
+                    !empty($stored_api_key) &&
+                    $submitted_api_key === str_repeat('*', max(0, strlen($stored_api_key) - 4)) . substr($stored_api_key, -4)
+                ) {
+                    // Do not update the API key
+                } else {
+                    if (defined('REPAIRSHOPR_SYNC_SECRET') || defined('AUTH_KEY')) {
+                        $secret = defined('REPAIRSHOPR_SYNC_SECRET') ? REPAIRSHOPR_SYNC_SECRET : (defined('AUTH_KEY') ? AUTH_KEY : '');
+                        if (!empty($secret)) {
+                            $encrypted = openssl_encrypt($submitted_api_key, 'AES-256-CBC', $secret, 0, substr(hash('sha256', $secret), 0, 16));
+                            update_option(REPAIRSHOPR_SYNC_OPTION_KEY, $encrypted);
+                        }
+                    } else {
+                        update_option(REPAIRSHOPR_SYNC_OPTION_KEY, $submitted_api_key);
+                    }
+                }
 
                 $auto_enabled = ($_POST['repairshopr_sync_auto_enabled'] === '1') ? 1 : 0;
                 update_option('repairshopr_sync_auto_enabled', $auto_enabled);
@@ -27,9 +51,24 @@ function display_settings_form() {
         }
     }
 
-    $api_key = get_option(REPAIRSHOPR_SYNC_OPTION_KEY);
+    $api_key = '';
+    if (defined('REPAIRSHOPR_SYNC_SECRET') || defined('AUTH_KEY')) {
+        $encrypted = get_option(REPAIRSHOPR_SYNC_OPTION_KEY);
+        $secret = defined('REPAIRSHOPR_SYNC_SECRET') ? REPAIRSHOPR_SYNC_SECRET : (defined('AUTH_KEY') ? AUTH_KEY : '');
+        if (!empty($encrypted) && !empty($secret)) {
+            $api_key = openssl_decrypt($encrypted, 'AES-256-CBC', $secret, 0, substr(hash('sha256', $secret), 0, 16));
+        }
+    } else {
+        $api_key = get_option(REPAIRSHOPR_SYNC_OPTION_KEY);
+    }
     $auto_enabled = get_option('repairshopr_sync_auto_enabled', 1);
     $interval = get_option('repairshopr_sync_interval_minutes', 30);
+
+    // Mask API key for display
+    $masked_api_key = '';
+    if (!empty($api_key)) {
+        $masked_api_key = str_repeat('*', max(0, strlen($api_key) - 4)) . substr($api_key, -4);
+    }
 
     ?>
     <h3><?php echo esc_html__('RepairShopr API Settings', 'repairshopr-sync'); ?></h3>
@@ -41,9 +80,12 @@ function display_settings_form() {
                 </th>
                 <td>
                     <input type="text" id="repairshopr_api_key" name="repairshopr_api_key" 
-                           value="<?php echo esc_attr($api_key); ?>" class="regular-text" />
+                           value="<?php echo esc_attr($masked_api_key); ?>" class="regular-text" autocomplete="off" />
                     <p class="description">
                         <?php echo esc_html__('Enter your RepairShopr API key here. You can find this in your RepairShopr account settings.', 'repairshopr-sync'); ?>
+                        <?php if (!empty($api_key)) {
+                            echo '<br>' . esc_html__('For security, only the last 4 characters of your stored API key are shown. Enter a new key to update.', 'repairshopr-sync');
+                        } ?>
                     </p>
                 </td>
             </tr>

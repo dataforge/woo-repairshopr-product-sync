@@ -43,6 +43,12 @@ function get_repairshopr_product($sku) {
 
     // Get API key from settings
     $api_key = get_option(REPAIRSHOPR_SYNC_OPTION_KEY);
+    if ((defined('REPAIRSHOPR_SYNC_SECRET') || defined('AUTH_KEY')) && !empty($api_key)) {
+        $secret = defined('REPAIRSHOPR_SYNC_SECRET') ? REPAIRSHOPR_SYNC_SECRET : (defined('AUTH_KEY') ? AUTH_KEY : '');
+        if (!empty($secret)) {
+            $api_key = openssl_decrypt($api_key, 'AES-256-CBC', $secret, 0, substr(hash('sha256', $secret), 0, 16));
+        }
+    }
     if (empty($api_key)) {
         error_log('RepairShopr API key not configured');
         return false;
