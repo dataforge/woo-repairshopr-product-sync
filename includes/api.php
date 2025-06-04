@@ -54,7 +54,11 @@ function get_repairshopr_product($sku) {
         return false;
     }
 
-    $api_url = "https://dataforgesys.repairshopr.com/api/v1/products?id=" . urlencode($sku);
+    // Get API URL from settings, default if not set
+    $base_api_url = get_option('repairshopr_api_url', 'https://your-subdomain.repairshopr.com/api/v1');
+    // Ensure no trailing slash
+    $base_api_url = rtrim($base_api_url, '/');
+    $api_url = $base_api_url . '/products?id=' . urlencode($sku);
     $response = wp_remote_get($api_url, [
         'headers' => [
             'Authorization' => $api_key,

@@ -35,7 +35,7 @@ function display_settings_form() {
     }
 
     // Handle form submission
-    if (isset($_POST['repairshopr_api_key']) && isset($_POST['repairshopr_sync_auto_enabled']) && isset($_POST['repairshopr_sync_interval_minutes'])) {
+    if (isset($_POST['repairshopr_api_key']) && isset($_POST['repairshopr_api_url']) && isset($_POST['repairshopr_sync_auto_enabled']) && isset($_POST['repairshopr_sync_interval_minutes'])) {
         if (current_user_can('manage_options')) {
             if (check_admin_referer('repairshopr_settings_nonce')) {
                 $stored_api_key = '';
@@ -72,6 +72,13 @@ function display_settings_form() {
                 if ($interval < 1) $interval = 1;
                 update_option('repairshopr_sync_interval_minutes', $interval);
 
+                // Save API URL
+                $api_url = trim(esc_url_raw($_POST['repairshopr_api_url']));
+                if (empty($api_url)) {
+                    $api_url = 'https://your-subdomain.repairshopr.com/api/v1';
+                }
+                update_option('repairshopr_api_url', $api_url);
+
                 echo '<div class="notice notice-success"><p>' . esc_html__('Settings saved successfully.', 'repairshopr-sync') . '</p></div>';
             }
         }
@@ -89,6 +96,9 @@ function display_settings_form() {
     }
     $auto_enabled = get_option('repairshopr_sync_auto_enabled', 1);
     $interval = get_option('repairshopr_sync_interval_minutes', 30);
+
+    // API URL
+    $api_url = get_option('repairshopr_api_url', 'https://your-subdomain.repairshopr.com/api/v1');
 
     // Mask API key for display
     $masked_api_key = '';
@@ -112,6 +122,19 @@ function display_settings_form() {
                         <?php if (!empty($api_key)) {
                             echo '<br>' . esc_html__('For security, only the last 4 characters of your stored API key are shown. Enter a new key to update.', 'repairshopr-sync');
                         } ?>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="repairshopr_api_url"><?php echo esc_html__('API URL', 'repairshopr-sync'); ?></label>
+                </th>
+                <td>
+                    <input type="text" id="repairshopr_api_url" name="repairshopr_api_url"
+                           value="<?php echo esc_attr($api_url); ?>" class="regular-text" autocomplete="off" />
+                    <p class="description">
+                        <?php echo esc_html__('Enter your RepairShopr API URL. Default:', 'repairshopr-sync'); ?>
+                        <code>https://your-subdomain.repairshopr.com/api/v1</code>
                     </p>
                 </td>
             </tr>
