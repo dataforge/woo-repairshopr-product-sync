@@ -108,7 +108,6 @@ function display_settings_form() {
 
     ?>
     <h3><?php echo esc_html__('RepairShopr API Settings', 'repairshopr-sync'); ?></h3>
-    <div style="color:red;font-weight:bold;">DEBUG: settings.php loaded (marker)</div>
     <form method="post">
         <table class="form-table">
             <tr>
