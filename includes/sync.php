@@ -16,16 +16,6 @@ function sync_repairshopr_data_with_woocommerce() {
     $per_page = 50;
     $changes = [];
     
-    // Extra debug: log initial stock for test SKUs before any updates
-    $test_skus = ['9839769', '9839768'];
-    foreach ($test_skus as $test_sku) {
-        $test_id = wc_get_product_id_by_sku($test_sku);
-        if ($test_id) {
-            $test_product = wc_get_product($test_id);
-            error_log("SYNC DEBUG: PRE-SYNC CHECK SKU $test_sku, ID $test_id, qty: " . $test_product->get_stock_quantity());
-        }
-    }
-
     do {
         $wc_products = get_posts([
             'post_type' => 'product',
@@ -177,9 +167,6 @@ function sync_product_data($product_obj, &$changes) {
     $sku = $product_obj->get_sku();
     $prod_id = $product_obj->get_id();
     $prod_type = $product_obj->get_type();
-    if ($sku === '9839769' || $sku === '9839768') {
-        error_log("SYNC DEBUG: Entering sync_product_data for ID $prod_id, type: $prod_type, SKU: $sku");
-    }
     if (!$sku) {
         return;
     }
@@ -187,16 +174,10 @@ function sync_product_data($product_obj, &$changes) {
     // Log the initial WooCommerce value at the start of sync
     $initial_qty = $product_obj->get_stock_quantity();
     $initial_price = $product_obj->get_regular_price();
-    if ($sku === '9839769' || $sku === '9839768') {
-        error_log("SYNC DEBUG: SKU $sku initial WC qty: $initial_qty, price: $initial_price");
-    }
 
     $repairshopr_product_data = get_repairshopr_product($sku);
 
     // Debug log for RepairShopr data
-    if ($sku === '9839769' || $sku === '9839768') {
-        error_log("SYNC DEBUG: SKU $sku RepairShopr data: " . print_r($repairshopr_product_data, true));
-    }
 
     if (!$repairshopr_product_data || !isset($repairshopr_product_data['quantity'], $repairshopr_product_data['price_retail'])) {
         return;
@@ -215,10 +196,6 @@ function sync_product_data($product_obj, &$changes) {
     $rs_price = is_null($repairshopr_new_price) ? 0.0 : (float)$repairshopr_new_price;
 
     // Debug log for comparison
-    if ($sku === '9839769' || $sku === '9839768') {
-        error_log("SYNC DEBUG: SKU $sku WC qty: $wc_qty (" . gettype($wc_qty) . "), RS qty: $rs_qty (" . gettype($rs_qty) . ")");
-        error_log("SYNC DEBUG: SKU $sku WC price: $wc_price (" . gettype($wc_price) . "), RS price: $rs_price (" . gettype($rs_price) . ")");
-    }
 
     $qty_changed = $wc_qty !== $rs_qty;
     $price_changed = abs($wc_price - $rs_price) > 0.0001;
@@ -238,17 +215,11 @@ function sync_product_data($product_obj, &$changes) {
 
         $manage_stock = $product_obj->get_manage_stock();
         // Debug log for manage stock
-        if ($sku === '9839769' || $sku === '9839768') {
-            error_log("SYNC DEBUG: SKU $sku manage_stock: " . ($manage_stock ? 'true' : 'false') . " qty_changed: " . ($qty_changed ? 'true' : 'false'));
-        }
         if ($manage_stock) {
             if ($qty_changed) {
                 // Try using WooCommerce stock update function for reliability
                 wc_update_product_stock($product_obj, $repairshopr_new_qty);
                 $after_wc_update_qty = (int)wc_get_product($product_obj->get_id())->get_stock_quantity();
-                if ($sku === '9839769' || $sku === '9839768') {
-                    error_log("SYNC DEBUG: SKU $sku after wc_update_product_stock qty: $after_wc_update_qty");
-                }
             }
         }
 
@@ -262,9 +233,6 @@ function sync_product_data($product_obj, &$changes) {
         // Extra debug: check for errors and product status
         $post_status = get_post_status($product_obj->get_id());
         $manage_stock = $product_obj->get_manage_stock();
-        if ($sku === '9839769' || $sku === '9839768') {
-            error_log("SYNC DEBUG: SKU $sku after save. Post status: $post_status, manage_stock: " . ($manage_stock ? 'true' : 'false'));
-        }
 
         // Reload product to confirm persistence
         $reloaded_product = wc_get_product($product_obj->get_id());
@@ -272,9 +240,6 @@ function sync_product_data($product_obj, &$changes) {
         $reloaded_price = (float)$reloaded_product->get_regular_price();
 
         // Debug log (can be removed after investigation)
-        if ($sku === '9839769' || $sku === '9839768') {
-            error_log("SYNC DEBUG: SKU $sku saved. Reloaded qty: $reloaded_qty, price: $reloaded_price");
-        }
 
         // Log the change to a transient (keep for 7 days, max 500 entries)
         $log_entry = [
