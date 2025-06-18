@@ -218,7 +218,7 @@ function sync_product_data($product_obj, &$changes) {
         if ($manage_stock) {
             if ($qty_changed) {
                 // Try using WooCommerce stock update function for reliability
-                wc_update_product_stock($product_obj, $repairshopr_new_qty);
+                wc_update_product_stock($product_obj, $rs_qty);
                 $after_wc_update_qty = (int)wc_get_product($product_obj->get_id())->get_stock_quantity();
             }
         }
