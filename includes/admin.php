@@ -288,7 +288,7 @@ function display_sync_tab() {
     echo '</form>';
     
     // Sync description box at the bottom
-    echo '<div class="notice notice-info" style="margin: 40px 0 20px 0; padding: 15px; border-left: 4px solid #00a0d2;">';
+    echo '<div class="repairshopr-info-box" style="margin: 40px 0 20px 0; padding: 15px; border-left: 4px solid #00a0d2; background: #f7f7f7; border-radius: 3px;">';
     echo '<h3 style="margin-top: 0; color: #23282d;">' . esc_html__('What This Plugin Syncs', 'repairshopr-sync') . '</h3>';
     echo '<p style="margin-bottom: 10px;"><strong>' . esc_html__('Data Synchronized:', 'repairshopr-sync') . '</strong></p>';
     echo '<ul style="margin-left: 20px; margin-bottom: 15px;">';
