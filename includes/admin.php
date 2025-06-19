@@ -256,19 +256,6 @@ function display_sync_tab() {
     echo '</div>';
     echo '</div>';
     
-    // Sync description box
-    echo '<div class="notice notice-info" style="margin: 20px 0; padding: 15px; border-left: 4px solid #00a0d2;">';
-    echo '<h3 style="margin-top: 0; color: #23282d;">' . esc_html__('What This Plugin Syncs', 'repairshopr-sync') . '</h3>';
-    echo '<p style="margin-bottom: 10px;"><strong>' . esc_html__('Data Synchronized:', 'repairshopr-sync') . '</strong></p>';
-    echo '<ul style="margin-left: 20px; margin-bottom: 15px;">';
-    echo '<li>' . esc_html__('Product Quantity (stock levels)', 'repairshopr-sync') . '</li>';
-    echo '<li>' . esc_html__('Product Price (retail price)', 'repairshopr-sync') . '</li>';
-    echo '</ul>';
-    echo '<p style="margin-bottom: 10px;"><strong>' . esc_html__('Sync Direction:', 'repairshopr-sync') . '</strong> ' . esc_html__('RepairShopr → WooCommerce (RepairShopr is the master system)', 'repairshopr-sync') . '</p>';
-    echo '<p style="margin-bottom: 10px;"><strong>' . esc_html__('Product Matching:', 'repairshopr-sync') . '</strong> ' . esc_html__('RepairShopr Product ID matches WooCommerce Product SKU', 'repairshopr-sync') . '</p>';
-    echo '<p style="margin-bottom: 0; font-style: italic; color: #666;">' . esc_html__('Note: This plugin does not sync product names, descriptions, categories, images, or other attributes - only quantity and price data.', 'repairshopr-sync') . '</p>';
-    echo '</div>';
-    
     // Button to start AJAX-based sync
     echo '<button id="start-ajax-sync" class="button button-primary">' . esc_html__('Start Sync Now for All', 'repairshopr-sync') . '</button>';
 
@@ -299,6 +286,19 @@ function display_sync_tab() {
     echo esc_html__('SKU:', 'repairshopr-sync') . ' <input type="text" name="specific_sku" required />';
     echo '<input type="submit" value="' . esc_attr__('Sync SKU', 'repairshopr-sync') . '" class="button button-secondary">';
     echo '</form>';
+    
+    // Sync description box at the bottom
+    echo '<div class="notice notice-info" style="margin: 40px 0 20px 0; padding: 15px; border-left: 4px solid #00a0d2;">';
+    echo '<h3 style="margin-top: 0; color: #23282d;">' . esc_html__('What This Plugin Syncs', 'repairshopr-sync') . '</h3>';
+    echo '<p style="margin-bottom: 10px;"><strong>' . esc_html__('Data Synchronized:', 'repairshopr-sync') . '</strong></p>';
+    echo '<ul style="margin-left: 20px; margin-bottom: 15px;">';
+    echo '<li>' . esc_html__('Product Quantity (stock levels)', 'repairshopr-sync') . '</li>';
+    echo '<li>' . esc_html__('Product Price (retail price)', 'repairshopr-sync') . '</li>';
+    echo '</ul>';
+    echo '<p style="margin-bottom: 10px;"><strong>' . esc_html__('Sync Direction:', 'repairshopr-sync') . '</strong> ' . esc_html__('RepairShopr → WooCommerce (RepairShopr is the master system)', 'repairshopr-sync') . '</p>';
+    echo '<p style="margin-bottom: 10px;"><strong>' . esc_html__('Product Matching:', 'repairshopr-sync') . '</strong> ' . esc_html__('RepairShopr Product ID matches WooCommerce Product SKU', 'repairshopr-sync') . '</p>';
+    echo '<p style="margin-bottom: 0; font-style: italic; color: #666;">' . esc_html__('Note: This plugin does not sync product names, descriptions, categories, images, or other attributes - only quantity and price data.', 'repairshopr-sync') . '</p>';
+    echo '</div>';
 }
 
 function display_changes_table($changes) {
