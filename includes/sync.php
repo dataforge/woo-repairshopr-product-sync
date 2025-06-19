@@ -177,8 +177,6 @@ function sync_product_data($product_obj, &$changes) {
 
     $repairshopr_product_data = get_repairshopr_product($sku);
 
-    // Debug log for RepairShopr data
-
     if (!$repairshopr_product_data || !isset($repairshopr_product_data['quantity'], $repairshopr_product_data['price_retail'])) {
         return;
     }
@@ -189,16 +187,31 @@ function sync_product_data($product_obj, &$changes) {
     $repairshopr_new_qty = $repairshopr_product_data['quantity'];
     $repairshopr_new_price = $repairshopr_product_data['price_retail'];
 
+    // Enhanced logging for debugging decimal issue
+    error_log("STOCK DEBUG: SKU {$sku} (ID: {$prod_id}, Type: {$prod_type}) - Starting sync");
+    error_log("STOCK DEBUG: SKU {$sku} - Raw RepairShopr qty: " . var_export($repairshopr_new_qty, true) . " (type: " . gettype($repairshopr_new_qty) . ")");
+    error_log("STOCK DEBUG: SKU {$sku} - Raw RepairShopr price: " . var_export($repairshopr_new_price, true) . " (type: " . gettype($repairshopr_new_price) . ")");
+    error_log("STOCK DEBUG: SKU {$sku} - WC current qty: " . var_export($woocommerce_current_qty, true) . " (type: " . gettype($woocommerce_current_qty) . ")");
+    error_log("STOCK DEBUG: SKU {$sku} - WC current price: " . var_export($woocommerce_current_price, true) . " (type: " . gettype($woocommerce_current_price) . ")");
+    error_log("STOCK DEBUG: SKU {$sku} - _stock meta before: " . var_export(get_post_meta($prod_id, '_stock', true), true));
+
+    // Clean RepairShopr data before using it - this is the key fix
+    $rs_qty_clean = is_numeric($repairshopr_new_qty) ? (int)$repairshopr_new_qty : 0;
+    $rs_price_clean = is_numeric($repairshopr_new_price) ? (float)$repairshopr_new_price : 0.0;
+
+    error_log("STOCK DEBUG: SKU {$sku} - Cleaned RepairShopr qty: " . var_export($rs_qty_clean, true) . " (type: " . gettype($rs_qty_clean) . ")");
+    error_log("STOCK DEBUG: SKU {$sku} - Cleaned RepairShopr price: " . var_export($rs_price_clean, true) . " (type: " . gettype($rs_price_clean) . ")");
+
     // Normalize and cast for strict comparison
     $wc_qty = is_null($woocommerce_current_qty) ? 0 : (int)$woocommerce_current_qty;
-    $rs_qty = is_null($repairshopr_new_qty) ? 0 : (int)$repairshopr_new_qty;
     $wc_price = is_null($woocommerce_current_price) ? 0.0 : (float)$woocommerce_current_price;
-    $rs_price = is_null($repairshopr_new_price) ? 0.0 : (float)$repairshopr_new_price;
 
-    // Debug log for comparison
+    error_log("STOCK DEBUG: SKU {$sku} - Final comparison - WC qty: {$wc_qty}, RS qty: {$rs_qty_clean}, WC price: {$wc_price}, RS price: {$rs_price_clean}");
 
-    $qty_changed = $wc_qty !== $rs_qty;
-    $price_changed = abs($wc_price - $rs_price) > 0.0001;
+    $qty_changed = $wc_qty !== $rs_qty_clean;
+    $price_changed = abs($wc_price - $rs_price_clean) > 0.0001;
+
+    error_log("STOCK DEBUG: SKU {$sku} - Qty changed: " . ($qty_changed ? 'YES' : 'NO') . ", Price changed: " . ($price_changed ? 'YES' : 'NO'));
 
     // Apply updates if needed
     if ($qty_changed || $price_changed) {
@@ -207,24 +220,28 @@ function sync_product_data($product_obj, &$changes) {
             'name' => $product_obj->get_name(),
             'sku' => $sku,
             'old_qty' => $woocommerce_current_qty,
-            'new_qty' => $repairshopr_new_qty,
+            'new_qty' => $rs_qty_clean,
             'old_price' => $woocommerce_current_price,
-            'new_price' => $repairshopr_new_price,
+            'new_price' => $rs_price_clean,
             'timestamp' => current_time('mysql'),
         ];
 
         $manage_stock = $product_obj->get_manage_stock();
-        // Debug log for manage stock
+        error_log("STOCK DEBUG: SKU {$sku} - Manage stock enabled: " . ($manage_stock ? 'YES' : 'NO'));
+        
         if ($manage_stock) {
             if ($qty_changed) {
-                // Try using WooCommerce stock update function for reliability
-                wc_update_product_stock($product_obj, $rs_qty);
+                error_log("STOCK DEBUG: SKU {$sku} - Updating stock from {$wc_qty} to {$rs_qty_clean}");
+                // Use WooCommerce stock update function with cleaned integer data
+                wc_update_product_stock($product_obj, $rs_qty_clean);
                 $after_wc_update_qty = (int)wc_get_product($product_obj->get_id())->get_stock_quantity();
+                error_log("STOCK DEBUG: SKU {$sku} - After wc_update_product_stock, qty is: " . var_export($after_wc_update_qty, true));
             }
         }
 
         if ($price_changed) {
-            $product_obj->set_regular_price($repairshopr_new_price);
+            error_log("STOCK DEBUG: SKU {$sku} - Updating price from {$wc_price} to {$rs_price_clean}");
+            $product_obj->set_regular_price($rs_price_clean);
         }
         
         $product_obj->save();
@@ -239,7 +256,9 @@ function sync_product_data($product_obj, &$changes) {
         $reloaded_qty = (int)$reloaded_product->get_stock_quantity();
         $reloaded_price = (float)$reloaded_product->get_regular_price();
 
-        // Debug log (can be removed after investigation)
+        error_log("STOCK DEBUG: SKU {$sku} - After save - _stock meta: " . var_export(get_post_meta($prod_id, '_stock', true), true));
+        error_log("STOCK DEBUG: SKU {$sku} - Reloaded qty: " . var_export($reloaded_qty, true) . " (type: " . gettype($reloaded_qty) . ")");
+        error_log("STOCK DEBUG: SKU {$sku} - Reloaded price: " . var_export($reloaded_price, true) . " (type: " . gettype($reloaded_price) . ")");
 
         // Log the change to a transient (keep for 7 days, max 500 entries)
         $log_entry = [
@@ -247,9 +266,9 @@ function sync_product_data($product_obj, &$changes) {
             'product_name' => $product_obj->get_name(),
             'sku' => $sku,
             'old_qty' => $woocommerce_current_qty,
-            'new_qty' => $repairshopr_new_qty,
+            'new_qty' => $rs_qty_clean,
             'old_price' => $woocommerce_current_price,
-            'new_price' => $repairshopr_new_price,
+            'new_price' => $rs_price_clean,
             'reloaded_qty' => $reloaded_qty,
             'reloaded_price' => $reloaded_price,
         ];
