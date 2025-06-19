@@ -3,7 +3,7 @@
  * Plugin Name:       Woo RepairShopr Product Sync
  * Plugin URI:        https://github.com/dataforge/woo-repairshopr-product-sync
  * Description:       Synchronizes product data between WooCommerce and RepairShopr, including quantities and retail prices, excluding stock status changes.
- * Version:           1.11
+ * Version:           1.12
  * Author:            Dataforge
  * License:           GPLv2 or later
  * Text Domain:       woo-repairshopr-product-sync

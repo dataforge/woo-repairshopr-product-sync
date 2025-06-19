@@ -35,7 +35,7 @@ function display_settings_form() {
     }
 
     // Handle form submission
-    if (isset($_POST['repairshopr_api_key']) && isset($_POST['repairshopr_api_url']) && isset($_POST['repairshopr_sync_auto_enabled']) && isset($_POST['repairshopr_sync_interval_minutes'])) {
+    if (isset($_POST['repairshopr_api_key']) && isset($_POST['repairshopr_api_url']) && isset($_POST['repairshopr_sync_auto_enabled']) && isset($_POST['repairshopr_sync_interval_minutes']) && isset($_POST['repairshopr_sync_logging_level'])) {
         if (current_user_can('manage_options')) {
             if (check_admin_referer('repairshopr_settings_nonce')) {
                 $stored_api_key = '';
@@ -79,6 +79,13 @@ function display_settings_form() {
                 }
                 update_option('repairshopr_api_url', $api_url);
 
+                // Save logging level
+                $logging_level = sanitize_text_field($_POST['repairshopr_sync_logging_level']);
+                if (!in_array($logging_level, ['none', 'changes_only', 'all'])) {
+                    $logging_level = 'none';
+                }
+                update_option('repairshopr_sync_logging_level', $logging_level);
+
                 echo '<div class="notice notice-success"><p>' . esc_html__('Settings saved successfully.', 'repairshopr-sync') . '</p></div>';
             }
         }
@@ -99,6 +106,9 @@ function display_settings_form() {
 
     // API URL
     $api_url = get_option('repairshopr_api_url', 'https://your-subdomain.repairshopr.com/api/v1');
+
+    // Logging level
+    $logging_level = get_option('repairshopr_sync_logging_level', 'none');
 
     // Mask API key for display
     $masked_api_key = '';
@@ -160,6 +170,21 @@ function display_settings_form() {
                     <input type="number" min="1" id="repairshopr_sync_interval_minutes" name="repairshopr_sync_interval_minutes" value="<?php echo esc_attr($interval); ?>" <?php echo $auto_enabled ? '' : 'disabled'; ?> />
                     <p class="description">
                         <?php echo esc_html__('How often to run automatic sync (minimum 1 minute).', 'repairshopr-sync'); ?>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="repairshopr_sync_logging_level"><?php echo esc_html__('Debug Logging Level', 'repairshopr-sync'); ?></label>
+                </th>
+                <td>
+                    <select id="repairshopr_sync_logging_level" name="repairshopr_sync_logging_level">
+                        <option value="none" <?php selected($logging_level, 'none'); ?>><?php echo esc_html__('No Logging', 'repairshopr-sync'); ?></option>
+                        <option value="changes_only" <?php selected($logging_level, 'changes_only'); ?>><?php echo esc_html__('Log Changes Only', 'repairshopr-sync'); ?></option>
+                        <option value="all" <?php selected($logging_level, 'all'); ?>><?php echo esc_html__('Log All Sync Activity', 'repairshopr-sync'); ?></option>
+                    </select>
+                    <p class="description">
+                        <?php echo esc_html__('Control how much sync activity is logged to debug.log. "No Logging" = silent operation, "Log Changes Only" = only log when products are updated, "Log All Sync Activity" = detailed logging for troubleshooting.', 'repairshopr-sync'); ?>
                     </p>
                 </td>
             </tr>

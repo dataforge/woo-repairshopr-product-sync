@@ -5,11 +5,38 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Helper function to log sync messages based on logging level setting
+ * 
+ * @param string $message The message to log
+ * @param string $level The logging level: 'all' or 'changes_only'
+ */
+function repairshopr_sync_log($message, $level = 'all') {
+    $logging_level = get_option('repairshopr_sync_logging_level', 'none');
+    
+    // Don't log anything if logging is disabled
+    if ($logging_level === 'none') {
+        return;
+    }
+    
+    // Log everything if set to 'all'
+    if ($logging_level === 'all') {
+        error_log($message);
+        return;
+    }
+    
+    // Log only changes if set to 'changes_only' and this is a change-level message
+    if ($logging_level === 'changes_only' && $level === 'changes_only') {
+        error_log($message);
+        return;
+    }
+}
+
+/**
  * Synchronize all product data between RepairShopr and WooCommerce
  */
 function sync_repairshopr_data_with_woocommerce() {
     // For AJAX batch processing, we'll have a separate function
-    error_log('Sync started: ' . date('Y-m-d H:i:s'));
+    repairshopr_sync_log('Sync started: ' . date('Y-m-d H:i:s'));
     
     // Get products in batches to improve performance
     $page = 1;
@@ -26,7 +53,7 @@ function sync_repairshopr_data_with_woocommerce() {
         
         foreach ($wc_products as $product) {
             $product_obj = wc_get_product($product->ID);
-            error_log("SYNC DEBUG: Processing product ID {$product->ID}, type: " . $product_obj->get_type() . ", SKU: " . $product_obj->get_sku());
+            repairshopr_sync_log("SYNC DEBUG: Processing product ID {$product->ID}, type: " . $product_obj->get_type() . ", SKU: " . $product_obj->get_sku());
 
             if ($product_obj->is_type('variable')) {
                 // Log all variation SKUs and initial quantities before any updates
@@ -40,10 +67,10 @@ function sync_repairshopr_data_with_woocommerce() {
                         'qty' => $variation->get_stock_quantity()
                     ];
                 }
-                error_log("SYNC DEBUG: Initial variation states for parent ID {$product->ID}: " . print_r($variation_states, true));
+                repairshopr_sync_log("SYNC DEBUG: Initial variation states for parent ID {$product->ID}: " . print_r($variation_states, true));
                 foreach ($variation_ids as $child_id) {
                     $variation = wc_get_product($child_id);
-                    error_log("SYNC DEBUG: Processing variation ID $child_id, SKU: " . $variation->get_sku());
+                    repairshopr_sync_log("SYNC DEBUG: Processing variation ID $child_id, SKU: " . $variation->get_sku());
                     sync_product_data($variation, $changes);
                 }
             } else {
@@ -55,7 +82,7 @@ function sync_repairshopr_data_with_woocommerce() {
     } while (count($wc_products) >= $per_page);
 
     set_transient('repairshopr_data_sync_changes', $changes, 3600);
-    error_log('Sync completed: ' . date('Y-m-d H:i:s'));
+    repairshopr_sync_log('Sync completed: ' . date('Y-m-d H:i:s'));
 }
 
 /**
@@ -188,30 +215,30 @@ function sync_product_data($product_obj, &$changes) {
     $repairshopr_new_price = $repairshopr_product_data['price_retail'];
 
     // Enhanced logging for debugging decimal issue
-    error_log("STOCK DEBUG: SKU {$sku} (ID: {$prod_id}, Type: {$prod_type}) - Starting sync");
-    error_log("STOCK DEBUG: SKU {$sku} - Raw RepairShopr qty: " . var_export($repairshopr_new_qty, true) . " (type: " . gettype($repairshopr_new_qty) . ")");
-    error_log("STOCK DEBUG: SKU {$sku} - Raw RepairShopr price: " . var_export($repairshopr_new_price, true) . " (type: " . gettype($repairshopr_new_price) . ")");
-    error_log("STOCK DEBUG: SKU {$sku} - WC current qty: " . var_export($woocommerce_current_qty, true) . " (type: " . gettype($woocommerce_current_qty) . ")");
-    error_log("STOCK DEBUG: SKU {$sku} - WC current price: " . var_export($woocommerce_current_price, true) . " (type: " . gettype($woocommerce_current_price) . ")");
-    error_log("STOCK DEBUG: SKU {$sku} - _stock meta before: " . var_export(get_post_meta($prod_id, '_stock', true), true));
+    repairshopr_sync_log("STOCK DEBUG: SKU {$sku} (ID: {$prod_id}, Type: {$prod_type}) - Starting sync");
+    repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Raw RepairShopr qty: " . var_export($repairshopr_new_qty, true) . " (type: " . gettype($repairshopr_new_qty) . ")");
+    repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Raw RepairShopr price: " . var_export($repairshopr_new_price, true) . " (type: " . gettype($repairshopr_new_price) . ")");
+    repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - WC current qty: " . var_export($woocommerce_current_qty, true) . " (type: " . gettype($woocommerce_current_qty) . ")");
+    repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - WC current price: " . var_export($woocommerce_current_price, true) . " (type: " . gettype($woocommerce_current_price) . ")");
+    repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - _stock meta before: " . var_export(get_post_meta($prod_id, '_stock', true), true));
 
     // Clean RepairShopr data before using it - this is the key fix
     $rs_qty_clean = is_numeric($repairshopr_new_qty) ? (int)$repairshopr_new_qty : 0;
     $rs_price_clean = is_numeric($repairshopr_new_price) ? (float)$repairshopr_new_price : 0.0;
 
-    error_log("STOCK DEBUG: SKU {$sku} - Cleaned RepairShopr qty: " . var_export($rs_qty_clean, true) . " (type: " . gettype($rs_qty_clean) . ")");
-    error_log("STOCK DEBUG: SKU {$sku} - Cleaned RepairShopr price: " . var_export($rs_price_clean, true) . " (type: " . gettype($rs_price_clean) . ")");
+    repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Cleaned RepairShopr qty: " . var_export($rs_qty_clean, true) . " (type: " . gettype($rs_qty_clean) . ")");
+    repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Cleaned RepairShopr price: " . var_export($rs_price_clean, true) . " (type: " . gettype($rs_price_clean) . ")");
 
     // Normalize and cast for strict comparison
     $wc_qty = is_null($woocommerce_current_qty) ? 0 : (int)$woocommerce_current_qty;
     $wc_price = is_null($woocommerce_current_price) ? 0.0 : (float)$woocommerce_current_price;
 
-    error_log("STOCK DEBUG: SKU {$sku} - Final comparison - WC qty: {$wc_qty}, RS qty: {$rs_qty_clean}, WC price: {$wc_price}, RS price: {$rs_price_clean}");
+    repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Final comparison - WC qty: {$wc_qty}, RS qty: {$rs_qty_clean}, WC price: {$wc_price}, RS price: {$rs_price_clean}");
 
     $qty_changed = $wc_qty !== $rs_qty_clean;
     $price_changed = abs($wc_price - $rs_price_clean) > 0.0001;
 
-    error_log("STOCK DEBUG: SKU {$sku} - Qty changed: " . ($qty_changed ? 'YES' : 'NO') . ", Price changed: " . ($price_changed ? 'YES' : 'NO'));
+    repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Qty changed: " . ($qty_changed ? 'YES' : 'NO') . ", Price changed: " . ($price_changed ? 'YES' : 'NO'));
 
     // Apply updates if needed
     if ($qty_changed || $price_changed) {
@@ -227,20 +254,20 @@ function sync_product_data($product_obj, &$changes) {
         ];
 
         $manage_stock = $product_obj->get_manage_stock();
-        error_log("STOCK DEBUG: SKU {$sku} - Manage stock enabled: " . ($manage_stock ? 'YES' : 'NO'));
+        repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Manage stock enabled: " . ($manage_stock ? 'YES' : 'NO'), 'changes_only');
         
         if ($manage_stock) {
             if ($qty_changed) {
-                error_log("STOCK DEBUG: SKU {$sku} - Updating stock from {$wc_qty} to {$rs_qty_clean}");
+                repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Updating stock from {$wc_qty} to {$rs_qty_clean}", 'changes_only');
                 // Use WooCommerce stock update function with cleaned integer data
                 wc_update_product_stock($product_obj, $rs_qty_clean);
                 $after_wc_update_qty = (int)wc_get_product($product_obj->get_id())->get_stock_quantity();
-                error_log("STOCK DEBUG: SKU {$sku} - After wc_update_product_stock, qty is: " . var_export($after_wc_update_qty, true));
+                repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - After wc_update_product_stock, qty is: " . var_export($after_wc_update_qty, true), 'changes_only');
             }
         }
 
         if ($price_changed) {
-            error_log("STOCK DEBUG: SKU {$sku} - Updating price from {$wc_price} to {$rs_price_clean}");
+            repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Updating price from {$wc_price} to {$rs_price_clean}", 'changes_only');
             $product_obj->set_regular_price($rs_price_clean);
         }
         
@@ -256,9 +283,9 @@ function sync_product_data($product_obj, &$changes) {
         $reloaded_qty = (int)$reloaded_product->get_stock_quantity();
         $reloaded_price = (float)$reloaded_product->get_regular_price();
 
-        error_log("STOCK DEBUG: SKU {$sku} - After save - _stock meta: " . var_export(get_post_meta($prod_id, '_stock', true), true));
-        error_log("STOCK DEBUG: SKU {$sku} - Reloaded qty: " . var_export($reloaded_qty, true) . " (type: " . gettype($reloaded_qty) . ")");
-        error_log("STOCK DEBUG: SKU {$sku} - Reloaded price: " . var_export($reloaded_price, true) . " (type: " . gettype($reloaded_price) . ")");
+        repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - After save - _stock meta: " . var_export(get_post_meta($prod_id, '_stock', true), true));
+        repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Reloaded qty: " . var_export($reloaded_qty, true) . " (type: " . gettype($reloaded_qty) . ")");
+        repairshopr_sync_log("STOCK DEBUG: SKU {$sku} - Reloaded price: " . var_export($reloaded_price, true) . " (type: " . gettype($reloaded_price) . ")");
 
         // Log the change to a transient (keep for 7 days, max 500 entries)
         $log_entry = [
